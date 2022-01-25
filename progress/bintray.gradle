@@ -2,6 +2,7 @@ apply plugin: 'com.novoda.bintray-release'
 
 allprojects {
     repositories {
+        maven { url 'https://jitpack.io' }
         jcenter()
     }
     tasks.withType(Javadoc) {
