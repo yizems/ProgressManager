@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.List;
 
 import me.jessyan.progressmanager.ProgressListener;
+import me.jessyan.progressmanager.RequestProgressListener;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 import okio.Buffer;
@@ -45,14 +46,17 @@ public class ProgressRequestBody extends RequestBody {
     protected int mRefreshTime;
     protected final RequestBody mDelegate;
     protected final ProgressListener[] mListeners;
+    private final RequestProgressListener onceListener;
     protected final ProgressInfo mProgressInfo;
     private BufferedSink mBufferedSink;
 
 
-    public ProgressRequestBody(Handler handler, RequestBody delegate, List<ProgressListener> listeners, int refreshTime) {
+    public ProgressRequestBody(Handler handler, RequestBody delegate, List<ProgressListener> listeners,
+                               RequestProgressListener onceListener, int refreshTime) {
         this.mDelegate = delegate;
         this.mListeners = listeners.toArray(new ProgressListener[listeners.size()]);
         this.mHandler = handler;
+        this.onceListener = onceListener;
         this.mRefreshTime = refreshTime;
         this.mProgressInfo = new ProgressInfo(System.currentTimeMillis());
     }
@@ -82,8 +86,11 @@ public class ProgressRequestBody extends RequestBody {
             mBufferedSink.flush();
         } catch (IOException e) {
             e.printStackTrace();
-            for (int i = 0; i < mListeners.length; i++) {
-                mListeners[i].onError(mProgressInfo.getId(), e);
+            if (onceListener != null) {
+                onceListener.onError(mProgressInfo.getId(), e);
+            }
+            for (ProgressListener mListener : mListeners) {
+                mListener.onError(mProgressInfo.getId(), e);
             }
             throw e;
         }
@@ -104,8 +111,11 @@ public class ProgressRequestBody extends RequestBody {
                 super.write(source, byteCount);
             } catch (IOException e) {
                 e.printStackTrace();
-                for (int i = 0; i < mListeners.length; i++) {
-                    mListeners[i].onError(mProgressInfo.getId(), e);
+                if (onceListener != null) {
+                    onceListener.onError(mProgressInfo.getId(), e);
+                }
+                for (ProgressListener mListener : mListeners) {
+                    mListener.onError(mProgressInfo.getId(), e);
                 }
                 throw e;
             }
@@ -114,12 +124,28 @@ public class ProgressRequestBody extends RequestBody {
             }
             totalBytesRead += byteCount;
             tempSize += byteCount;
-            if (mListeners != null) {
+            if (mListeners != null || onceListener != null) {
                 long curTime = SystemClock.elapsedRealtime();
                 if (curTime - lastRefreshTime >= mRefreshTime || totalBytesRead == mProgressInfo.getContentLength()) {
                     final long finalTempSize = tempSize;
                     final long finalTotalBytesRead = totalBytesRead;
                     final long finalIntervalTime = curTime - lastRefreshTime;
+
+                    if (onceListener != null) {
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // Runnable 里的代码是通过 Handler 执行在主线程的,外面代码可能执行在其他线程
+                                // 所以我必须使用 final ,保证在 Runnable 执行前使用到的变量,在执行时不会被修改
+                                mProgressInfo.setEachBytes(finalTempSize);
+                                mProgressInfo.setCurrentbytes(finalTotalBytesRead);
+                                mProgressInfo.setIntervalTime(finalIntervalTime);
+                                mProgressInfo.setFinish(finalTotalBytesRead == mProgressInfo.getContentLength());
+                                onceListener.onProgress(mProgressInfo);
+                            }
+                        });
+                    }
+
                     for (int i = 0; i < mListeners.length; i++) {
                         final ProgressListener listener = mListeners[i];
                         mHandler.post(new Runnable() {
@@ -135,6 +161,7 @@ public class ProgressRequestBody extends RequestBody {
                             }
                         });
                     }
+
                     lastRefreshTime = curTime;
                     tempSize = 0;
                 }

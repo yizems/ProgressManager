@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package me.jessyan.progressmanager;
+package me.jessyan.progressmanager
 
-import me.jessyan.progressmanager.body.ProgressInfo;
+import me.jessyan.progressmanager.body.ProgressInfo
+import okhttp3.Request
 
 /**
  * ================================================
  * Created by JessYan on 02/06/2017 18:23
- * <a href="mailto:jess.yan.effort@gmail.com">Contact me</a>
- * <a href="https://github.com/JessYanCoding">Follow me</a>
+ * [Contact me](mailto:jess.yan.effort@gmail.com)
+ * [Follow me](https://github.com/JessYanCoding)
  * ================================================
  */
-public interface ProgressListener {
+interface ProgressListener {
     /**
      * 进度监听
      *
      * @param progressInfo 关于进度的所有信息
      */
-    void onProgress(ProgressInfo progressInfo);
+    fun onProgress(progressInfo: ProgressInfo?)
 
     /**
      * 错误监听
@@ -38,5 +39,31 @@ public interface ProgressListener {
      * @param id 进度信息的 id
      * @param e  错误
      */
-    void onError(long id, Exception e);
+    fun onError(id: Long, e: Exception?)
+}
+
+interface RequestProgressListener : ProgressListener {
+
+}
+
+interface ResponseProgressListener : ProgressListener {
+
+}
+
+/**
+ * 单次请求请求进度监听
+ * @receiver Request.Builder
+ * @param listener RequestProgressListener
+ */
+fun Request.Builder.requestListener(listener: RequestProgressListener) {
+    tag(RequestProgressListener::class.java, listener)
+}
+
+/**
+ * 单次请求请求进度监听
+ * @receiver Request.Builder
+ * @param listener ResponseProgressListener
+ */
+fun Request.Builder.responseListener(listener: ResponseProgressListener) {
+    tag(ResponseProgressListener::class.java, listener)
 }

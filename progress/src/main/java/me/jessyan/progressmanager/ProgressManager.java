@@ -24,6 +24,7 @@ import android.text.TextUtils;
 
 import java.io.IOException;
 import java.lang.ref.ReferenceQueue;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -209,10 +210,18 @@ public final class ProgressManager {
 
         if (request.body() == null)
             return request;
-        if (mRequestListeners.containsKey(key)) {
+
+        RequestProgressListener onceListener = request.tag(RequestProgressListener.class);
+
+        if (mRequestListeners.containsKey(key) || onceListener != null) {
             List<ProgressListener> listeners = mRequestListeners.get(key);
+            if (listeners == null) {
+                listeners = new ArrayList<>(0);
+            }
             return request.newBuilder()
-                    .method(request.method(), new ProgressRequestBody(mHandler, request.body(), listeners, mRefreshTime))
+                    .method(request.method(),
+                            new ProgressRequestBody(mHandler, request.body(), listeners, onceListener, mRefreshTime)
+                    )
                     .build();
         }
         return request;
@@ -263,10 +272,16 @@ public final class ProgressManager {
         if (response.body() == null)
             return response;
 
-        if (mResponseListeners.containsKey(key)) {
+        ResponseProgressListener onceListener = response.request().tag(ResponseProgressListener.class);
+
+
+        if (mResponseListeners.containsKey(key) || onceListener != null) {
             List<ProgressListener> listeners = mResponseListeners.get(key);
+            if (listeners == null) {
+                listeners = new ArrayList<>(0);
+            }
             return response.newBuilder()
-                    .body(new ProgressResponseBody(mHandler, response.body(), listeners, mRefreshTime))
+                    .body(new ProgressResponseBody(mHandler, response.body(), listeners, onceListener, mRefreshTime))
                     .build();
         }
         return response;
