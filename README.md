@@ -1,5 +1,8 @@
 # ProgressManager
 
+[![](https://jitpack.io/v/yizems/ProgressManager.svg)](https://jitpack.io/#yizems/ProgressManager)
+
+
 ## 为何修改
 
 1. 全局监听并不适合于所有场景,目前的这种方式,内存泄漏的几率挺高的,特别是常量`url`的情况;这也是为何作者推荐`new String()`方式创建Url的原因
