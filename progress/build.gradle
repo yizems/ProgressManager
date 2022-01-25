@@ -2,6 +2,8 @@ apply plugin: 'com.android.library'
 
 apply plugin: 'kotlin-android'
 
+apply plugin: "com.vanniktech.maven.publish"
+
 android {
     compileSdkVersion rootProject.compileSdkVersion
     buildToolsVersion rootProject.buildToolsVersion
@@ -34,4 +36,3 @@ dependencies {
     compileOnly 'com.squareup.okhttp3:okhttp:4.9.0'
 }
 
-apply from: 'bintray.gradle'
