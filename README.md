@@ -12,6 +12,12 @@
 ## 修改后
 
 ```
+
+// 初始化
+// 构建 OkHttpClient 时,将 OkHttpClient.Builder() 传入 with() 方法,进行初始化配置
+OkHttpClient = ProgressManager.getInstance().with(new OkHttpClient.Builder())
+               .build();
+
 //kotlin
 Request.Build()
     .requestListener(listener: RequestProgressListener)
